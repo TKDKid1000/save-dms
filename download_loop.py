@@ -39,6 +39,7 @@ def download_messages_loop(
 
     return messages
 
+
 async def async_download_messages_loop(
     token: str, total_messages: int, channel_id: str, limit: int
 ) -> list[dict]:

@@ -73,6 +73,10 @@ Well, this is what I made the tool for, really. You can actively relive your mes
 
 Another WIP tool is `story.py`, which will write a complete and accurate story about what the hell happened in those DMs.
 
+In general, the `story.py` system works; it's just incredibly slow. I'll work on parellelizing it eventually, but since it generates the story in segments that rely on the prior, it becomes difficult to parallelize due to the necessity of sequential processing. This program will, after the amount of time it takes to finish - around 2:30s for a 5000 message thread, utilizing DeepInfra's LLM hardware - output a complete story of the chat history. It's pretty contextually accurate, but it puts a spin on things a bit by describing everything from a third-person perspective - one you likely didn't get when first creating those messages - and utilizing creative diction.
+
+It's still a work in progress, as stated, and things like providing contextual information like message dates/times will certainly be added in the future. For now, however, it will provide a decent afternoon (or full day, depending on your conversation length) read that should help you see what you missed.
+
 ## Context
 
 I created this tool a long time ago after finding a similar C# based system for backing up Discord messages, which I really quite liked. However, C# was a pain to run and automate, so I decided to create my own backup system in Python. I started using it to save every single DM or group chat that I ever closed, so that I could look back on it after I inevitably had to go.

@@ -1,4 +1,5 @@
 import asyncio
+from collections import defaultdict
 import json
 import os
 import sys
@@ -14,38 +15,14 @@ from tqdm import tqdm
 
 from dotenv import load_dotenv
 
+from utils import group, split_conversations
+
 load_dotenv()
 
 openai = AsyncOpenAI(
     api_key=os.environ["DEEPINFRA_API_KEY"],
     base_url="https://api.deepinfra.com/v1/openai",
 )
-
-
-T = TypeVar("T")
-
-
-def group(array: list[T], size: int) -> list[list[T]]:
-    """
-    Groups the elements of an array into sublists of a specified size.
-
-    Args:
-    1. array: A list of elements to be grouped.
-    2. size: The desired size of each sublist.
-
-    Returns:
-    A list of sublists, where each sublist contains at most `size` elements.
-    """
-    return [array[i : i + size] for i in range(0, len(array), size)]
-
-
-def join_grammatically(words: list[str]) -> str:
-    if len(words) == 0:
-        return ""
-    elif len(words) == 1:
-        return words[0]
-    else:
-        return ", ".join(words[:-1]) + " and " + words[-1]
 
 
 async def summarize(text: str) -> str:
@@ -55,7 +32,7 @@ async def summarize(text: str) -> str:
         messages=[
             {
                 "role": "user",
-                "content": "Summarize the following conversation into a several bullet points. Include all significant conversation elements:\n"
+                "content": "Summarize the following conversation into a several bullet points. Respond with only bullet points and no headers. Include all significant conversation elements:\n"
                 + text,
             }
         ],
@@ -69,6 +46,7 @@ if not sys.argv[1]:
     print("error: no messages supplied.")
     sys.exit(1)
 
+names = defaultdict(lambda: "Ghost")
 names = {
     name.partition("=")[0]: name.partition("=")[2]
     for name in sys.argv[2:]
@@ -77,19 +55,19 @@ names = {
 
 with open(sys.argv[1], encoding="utf8") as f:
     dms = json.load(f)
-conversations: list[str] = []
 
-last_timestamp: datetime = datetime(2000, 1, 1)
-for message in tqdm(dms["messages"], desc="Conversations"):
-    timestamp = datetime.fromisoformat(message["timestamp"])
-    formatted_message = (
-        names[message["author"]["username"]] + ": " + message["content"] + "\n"
+conversations = split_conversations(
+    messages=dms["messages"], conversation_duration=timedelta(hours=4)
+)
+
+
+conversation_transcripts = [
+    list(
+        f'{names[message["author"]["username"]]}: {message["content"]}\n'
+        for message in conversation
     )
-    if timestamp.timestamp() < (last_timestamp + timedelta(hours=4)).timestamp():
-        conversations[-1] += formatted_message
-    else:
-        conversations.append(formatted_message)
-    last_timestamp = timestamp
+    for conversation in conversations
+]
 
 
 # Group conversations into groups of 100, then run those groups in parallel with async.
@@ -101,12 +79,22 @@ async def main():
 
     for conversation_group in tqdm(groups, desc="Summaries"):
         group_summaries = await atqdm.gather(
-            *[summarize(conversation) for conversation in conversation_group]
+            *[
+                summarize(
+                    "".join(
+                        f'{names[message["author"]["username"]]}: {message["content"]}\n'
+                        for message in conversation
+                    )
+                )
+                for conversation in conversation_group
+            ]
         )
 
         summaries.extend(group_summaries)
 
     summary = "\n\n".join(summaries)
+    summary = re.sub(r"^ ?(?:[*-]|\d+[.)])", "-", summary, flags=re.MULTILINE)
+    summary = json.dumps(names) + "\n" + summary
 
     with open(
         re.sub(r"^[\w.\-]*", "summary", Path(sys.argv[1]).with_suffix(".txt").name),
@@ -114,28 +102,6 @@ async def main():
         encoding="utf8",
     ) as f:
         f.write(summary)
-
-    print("Summarization finished, writing story.")
-    response = await openai.chat.completions.create(
-        model="mistralai/Mistral-7B-Instruct-v0.3",
-        messages=[
-            {
-                "role": "user",
-                "content": f"""The following input is a summary of several conversations between {join_grammatically(list(names.values()))}.
-                Rewrite this summary as a story from a third person perspective.\n:{summary}""",
-            }
-        ],
-        max_tokens=100000,
-    )
-
-    story = response.choices[0].message.content or ""
-
-    with open(
-        re.sub(r"^[\w.\-]*", "story", Path(sys.argv[1]).with_suffix(".txt").name),
-        "w",
-        encoding="utf8",
-    ) as f:
-        f.write(story)
 
 
 asyncio.run(main())

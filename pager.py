@@ -53,7 +53,7 @@ parser.add_argument(
     "-a",
     "--attachments",
     action="store_true",
-    help="Add links to attachments beneath messages."
+    help="Add links to attachments beneath messages.",
 )
 
 args = parser.parse_args()
@@ -127,7 +127,7 @@ for message in dms["messages"]:
         message_text,
     )
 
-    message_text += ANSI.ENDC # Append this to avoid any overflowing colors
+    message_text += ANSI.ENDC  # Append this to avoid any overflowing colors
 
     if args.day and (
         last_timestamp is None or last_timestamp.day != message_time_local.day

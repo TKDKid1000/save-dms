@@ -3,3 +3,4 @@ download.sh
 .env
 __pycache__
 .vscode
+.venv

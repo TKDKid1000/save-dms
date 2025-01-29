@@ -4,6 +4,24 @@ from typing import TypeVar
 T = TypeVar("T")
 
 
+def join_grammatically(words: list[str]) -> str:
+    """
+    Joins words with commas and, when grammatically correct, the word "and."
+
+    Args:
+    1. words: A list of words to be joined.
+
+    Returns:
+    A string, containing all the inputted words grammatically joined.
+    """
+    if len(words) == 0:
+        return ""
+    elif len(words) == 1:
+        return words[0]
+    else:
+        return ", ".join(words[:-1]) + " and " + words[-1]
+
+
 def group(array: list[T], size: int) -> list[list[T]]:
     """
     Groups the elements of an array into sublists of a specified size.
