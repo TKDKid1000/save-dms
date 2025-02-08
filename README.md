@@ -62,6 +62,9 @@ options:
   -l LIMIT, --limit LIMIT
                         Maximum number of messages to download, per channel, starting from the end. Defaults to all.
 ```
+### Images
+
+These do have to be downloaded separately, but simply running `python images.py <MESSAGES> <TOKEN>` will download all the images to a new directory with the same name as the messages. This is separate simply because it takes a while and may not always be needed. Pass the JSON file as the MESSAGES argument and your token in the TOKEN section. The token is required to refresh the media.
 
 ## Analysis
 
